@@ -4,7 +4,7 @@
 
 OpenCLInterface::OpenCLInterface() 
 {
-    std::cout << "Default constructor called" << std::endl;
+    std::cout << "Empty constructor called" << std::endl;
 }
 
 // ====================================================
@@ -68,7 +68,7 @@ void OpenCLInterface::addKernel(
     int numOutputArrays = outputArraySizes.size();
 
     // create read buffer vector
-    readBuffers = {}; // empty vector
+    inputBuffers = {}; // empty vector
 
     for (int i = 0; i < numInputArrays; ++i)
     {
@@ -76,11 +76,11 @@ void OpenCLInterface::addKernel(
 
         cl::Buffer buffer(context, CL_MEM_READ_ONLY, sizeof(float) * numArrayElements);
 
-        readBuffers.push_back(buffer);
+        inputBuffers.push_back(buffer);
     }
 
     // create write buffer vector
-    writeBuffers = {}; // empty vector
+    outputBuffers = {}; // empty vector
 
     for (int i = 0; i < numOutputArrays; ++i)
     {
@@ -88,7 +88,7 @@ void OpenCLInterface::addKernel(
 
         cl::Buffer buffer(context, CL_MEM_WRITE_ONLY, sizeof(float) * numArrayElements);
 
-        writeBuffers.push_back(buffer);
+        outputBuffers.push_back(buffer);
     }
 }
 
@@ -113,16 +113,16 @@ void OpenCLInterface::runKernel(
         float* array = std::get<0>(inputArrays[i]);
         int numArrayElements = std::get<1>(inputArrays[i]);
 
-        queue.enqueueWriteBuffer(readBuffers[i], CL_TRUE, 0, sizeof(float) * numArrayElements, array);
+        queue.enqueueWriteBuffer(inputBuffers[i], CL_TRUE, 0, sizeof(float) * numArrayElements, array);
     }
 
     for (int i = 0; i < numInputArrays; ++i)
     {
-        kernel.setArg(i, readBuffers[i]);
+        kernel.setArg(i, inputBuffers[i]);
     }
     for (int i = 0; i < numOutputArrays; ++i)
     {
-        kernel.setArg(i + numInputArrays, writeBuffers[i]);
+        kernel.setArg(i + numInputArrays, outputBuffers[i]);
     }
 
     // run kernel
@@ -137,7 +137,7 @@ void OpenCLInterface::runKernel(
         float* array = std::get<0>(outputArrays[i]);
         int numArrayElements = std::get<1>(outputArrays[i]);
 
-        queue.enqueueReadBuffer(writeBuffers[i], CL_TRUE, 0, sizeof(float) * numArrayElements, array);
+        queue.enqueueReadBuffer(outputBuffers[i], CL_TRUE, 0, sizeof(float) * numArrayElements, array);
     }
 }
 

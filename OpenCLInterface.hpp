@@ -8,6 +8,15 @@
 #include <string>
 #include <cassert>
 
+struct OpenCLKernel
+{
+    int numInputArrays;
+    int numOutputArrays;
+    std::vector<int> inputArraySizes;
+    std::vector<int> outputArraySizes;
+    std::vector<cl::Buffer> inputBuffers;
+    std::vector<cl::Buffer> outputBuffers;
+};
 
 class OpenCLInterface
 {
@@ -21,11 +30,9 @@ private:
     cl::CommandQueue queue;
 
     cl::Kernel kernel;
-    cl::Buffer readBuffer;
-    cl::Buffer writeBuffer;
 
-    std::vector<cl::Buffer> readBuffers;
-    std::vector<cl::Buffer> writeBuffers;
+    std::vector<cl::Buffer> inputBuffers;
+    std::vector<cl::Buffer> outputBuffers;
 
 public:
     OpenCLInterface();
