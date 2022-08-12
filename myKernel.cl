@@ -1,10 +1,11 @@
 kernel void myKernel (
     global const float* A, 
-    global float* B
+    global const float* B,
+    global float* C
 )
 {
     int index = get_global_id(0);
 
-    B[index] = 2.0 * A[index];
+    C[index] = A[index] + B[index];
     
 }

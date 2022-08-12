@@ -24,14 +24,14 @@ int main()
     // Create opencl app object
     OpenCLInterface myInterface(0, 0);
 
-    myApp.addKernel(
+    myInterface.addKernel(
         kernelPath,
         kernelName,
         {10, 10},
         {10}
     );
 
-    myApp.runKernel(
+    myInterface.runKernel(
         10,
         5,
         {std::make_tuple(A, 10), std::make_tuple(B, 10)},
