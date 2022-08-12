@@ -1,6 +1,6 @@
 #include <CL/opencl.hpp>
 
-#include "OpenCLInterface.hpp"
+#include "OpenCL_Interface.hpp"
 
 OpenCL_Interface::OpenCL_Interface() 
 {
@@ -10,8 +10,8 @@ OpenCL_Interface::OpenCL_Interface()
 // ====================================================
 
 OpenCL_Interface::OpenCL_Interface(
-    const int& targetPlatformIndex, 
-    const int& targetDeviceIndex
+    const int& platformIndex, 
+    const int& deviceIndex
 )
 {
     // get vector of platforms
@@ -21,7 +21,7 @@ OpenCL_Interface::OpenCL_Interface(
     assert(("No platforms found", platforms.size() > 0));
 
     // get target platform
-    platform = platforms[targetPlatformIndex];
+    platform = platforms[platformIndex];
 
     // get vector of devices
     platform.getDevices(CL_DEVICE_TYPE_ALL, &devices);
@@ -30,7 +30,7 @@ OpenCL_Interface::OpenCL_Interface(
     assert(("No devices found", devices.size() > 0));
 
     // get target device
-    device = devices[targetDeviceIndex];
+    device = devices[deviceIndex];
 
     // Output success to user
     std::cout << "Connected to accelerator device: ";
@@ -52,19 +52,14 @@ void OpenCL_Interface::addKernel(
     const std::vector<int>& outputArraySizes
 )
 {
-    OpenCL_KernelInterface kernelInterface;
-
-    kernelInterface.numInputArrays = inputArraySizes.size();
-    kernelInterface.numOutputArrays = outputArraySizes.size();
-
-    kernelInterface.inputArraySizes = inputArraySizes;
-    kernelInterface.outputArraySizes = outputArraySizes;
+    // create kernel interface object with input and output dimensions
+    OpenCL_KernelInterface kernelInterface = OpenCL_KernelInterface(&device, &context, kernelPath, kernelName, inputArraySizes, outputArraySizes);
 
     // get kernel source
-    std::string kernelSource = getKernelSource(kernelPath);
+    //std::string kernelSource = getKernelSource(kernelPath);
 
     // get kernel
-    kernelInterface.kernel = getKernel(kernelSource, kernelName);
+    //kernelInterface.kernel = getKernel(kernelSource, kernelName);
 
     // create read buffer vector
     kernelInterface.inputBuffers = {}; // empty vector
@@ -96,7 +91,7 @@ void OpenCL_Interface::addKernel(
 // ====================================================
 
 void OpenCL_Interface::runKernel(
-    const int& targetKernelIndex,
+    const int& index,
     const int& numElements,
     const int& workgroupSize,
     const std::vector<float*>& inputArrays, 
@@ -104,78 +99,38 @@ void OpenCL_Interface::runKernel(
 )
 {
     // add input to input buffer
-    for (int i = 0; i < kernelInterfaces[targetKernelIndex].numInputArrays; ++i)
+    for (int i = 0; i < kernelInterfaces[index].getNumInputArrays(); ++i)
     {
         float* array = inputArrays[i];
+        cl::Buffer* inputBufferPtr = kernelInterfaces[index].getInputBufferPtr(i);
 
-        queue.enqueueWriteBuffer(kernelInterfaces[targetKernelIndex].inputBuffers[i], CL_TRUE, 0, sizeof(float) * kernelInterfaces[targetKernelIndex].inputArraySizes[i], array);
+        queue.enqueueWriteBuffer(*inputBufferPtr, CL_TRUE, 0, sizeof(float) * kernelInterfaces[index].getInputArraySize(i), array);
     }
 
     // set kernel arguments
-    for (int i = 0; i < kernelInterfaces[targetKernelIndex].numInputArrays; ++i)
+    for (int i = 0; i < kernelInterfaces[index].numInputArrays; ++i)
     {
-        kernelInterfaces[targetKernelIndex].kernel.setArg(i, kernelInterfaces[targetKernelIndex].inputBuffers[i]);
+        kernelInterfaces[index].kernel.setArg(i, kernelInterfaces[index].inputBuffers[i]);
     }
-    for (int i = 0; i < kernelInterfaces[targetKernelIndex].numOutputArrays; ++i)
+    for (int i = 0; i < kernelInterfaces[index].numOutputArrays; ++i)
     {
-        kernelInterfaces[targetKernelIndex].kernel.setArg(i + kernelInterfaces[targetKernelIndex].numInputArrays, kernelInterfaces[targetKernelIndex].outputBuffers[i]);
+        kernelInterfaces[index].kernel.setArg(i + kernelInterfaces[index].numInputArrays, kernelInterfaces[index].outputBuffers[i]);
     }
 
+    // get pointer for kernel
+    cl::Kernel* kernelPtr = kernelInterfaces[index].getKernelPtr();
+
     // run kernel
-    queue.enqueueNDRangeKernel(kernelInterfaces[targetKernelIndex].kernel, cl::NullRange, cl::NDRange(numElements), cl::NDRange(workgroupSize));
+    queue.enqueueNDRangeKernel(*kernelPtr, cl::NullRange, cl::NDRange(numElements), cl::NDRange(workgroupSize));
 
     // wait for kernel to finish
     queue.finish();
 
     // transfer output buffer to output
-    for (int i = 0; i < kernelInterfaces[targetKernelIndex].numOutputArrays; ++i)
+    for (int i = 0; i < kernelInterfaces[index].numOutputArrays; ++i)
     {
         float* array = outputArrays[i];
 
-        queue.enqueueReadBuffer(kernelInterfaces[targetKernelIndex].outputBuffers[i], CL_TRUE, 0, sizeof(float) * kernelInterfaces[targetKernelIndex].outputArraySizes[i], array);
+        queue.enqueueReadBuffer(kernelInterfaces[index].outputBuffers[i], CL_TRUE, 0, sizeof(float) * kernelInterfaces[index].outputArraySizes[i], array);
     }
-}
-
-// ====================================================
-
-// create kernel object given kernel source file
-cl::Kernel OpenCL_Interface::getKernel(
-    const std::string& kernelSource, 
-    const std::string& kernelName
-)
-{
-    // initialise program sources, takes array with const char* c string and length
-    cl::Program::Sources sources;
-    sources.push_back({ kernelSource.c_str(), kernelSource.length() });
-
-    // build program
-    cl::Program program(context, sources);
-
-    assert(("Kernel did not build", program.build({ device }) == CL_SUCCESS));
-
-    // create kernel object
-    cl::Kernel kernel = cl::Kernel(program, kernelName.c_str());
-    
-    return kernel;
-}
-
-// ====================================================
-
-// create kernel source given path
-std::string OpenCL_Interface::getKernelSource(
-    const std::string& kernelPath
-)
-{
-    // create kernel source string
-    std::ifstream file(kernelPath);
-    std::string input;
-    std::string kernelSource;
-
-    while (file >> input)
-    {
-        input.append(" ");
-        kernelSource.append(input);
-    }
-
-    return kernelSource;
 }

@@ -8,8 +8,10 @@
 #include <string>
 #include <cassert>
 
-struct OpenCL_KernelInterface
+class OpenCL_KernelInterface
 {
+public:
+    std::string name;
     int numInputArrays;
     int numOutputArrays;
     std::vector<int> inputArraySizes;
@@ -17,6 +19,38 @@ struct OpenCL_KernelInterface
     std::vector<cl::Buffer> inputBuffers;
     std::vector<cl::Buffer> outputBuffers;
     cl::Kernel kernel;
+
+public:
+    OpenCL_KernelInterface();
+    OpenCL_KernelInterface(
+        cl::Device* devicePtr,
+        cl::Context* contextPtr,
+        const std::string& kernelPath,
+        const std::string& kernelName,
+        const std::vector<int>& newInputArraySizes, 
+        const std::vector<int>& newOutputArraySizes
+    );
+
+    int getNumInputArrays();
+    int getNumOutputArrays();
+    int getInputArraySize(const int& index);
+    int getOutputArraySize(const int& index);
+
+    cl::Buffer* getInputBufferPtr(const int& index);
+    cl::Buffer* getOutputBufferPtr(const int& index);
+    cl::Kernel* getKernelPtr();
+
+    static cl::Kernel getKernel(
+        cl::Device* devicePtr,
+        cl::Context* contextPtr,
+        const std::string& kernelSource, 
+        const std::string& kernelName
+    );
+
+    static std::string getKernelSource(
+        const std::string& kernelPath
+    );
+
 };
 
 class OpenCL_Interface
@@ -36,8 +70,8 @@ public:
     OpenCL_Interface();
 
     OpenCL_Interface(
-        const int& targetPlatformIndex, 
-        const int& targetDeviceIndex
+        const int& platformIndex, 
+        const int& deviceIndex
     );
 
     void addKernel(
@@ -48,20 +82,11 @@ public:
     );
 
     void runKernel(
-        const int& targetKernelIndex,
+        const int& index,
         const int& numElements,
         const int& workgroupSize,
         const std::vector<float*>& inputArrays,
         const std::vector<float*>& outputArrays
-    );
-
-    cl::Kernel getKernel(
-        const std::string& kernelSource, 
-        const std::string& kernelName
-    );
-
-    static std::string getKernelSource(
-        const std::string& kernelPath
     );
 
 };

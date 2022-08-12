@@ -1,8 +1,6 @@
 #include <iostream>
 
-#include "OpenCLInterface.hpp"
-#include <vector>
-#include <string>
+#include "OpenCL_Interface.hpp"
 
 int main() 
 {
