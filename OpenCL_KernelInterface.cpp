@@ -1,17 +1,25 @@
+/* 
+    ==============================================================================================
+     OpenCL_KernelInterface class source file (William Denny, 12th Aug 2022)
+    ==============================================================================================
+*/
+
 #include "OpenCL_Interface.hpp"
 
+// empty constructor
 OpenCL_KernelInterface::OpenCL_KernelInterface()
 {
 
 }
 
+// main constructor
 OpenCL_KernelInterface::OpenCL_KernelInterface(
     cl::Device* devicePtr,
     cl::Context* contextPtr,
     const std::string& kernelPath,
     const std::string& kernelName,
-    const std::vector<int>& newInputArraySizes, 
-    const std::vector<int>& newOutputArraySizes
+    const std::vector<int>& kernelInputArraySizes, 
+    const std::vector<int>& kernelOutputArraySizes
 )
 {
     // get kernel source
@@ -21,51 +29,80 @@ OpenCL_KernelInterface::OpenCL_KernelInterface(
     kernel = getKernel(devicePtr, contextPtr, kernelSource, kernelName);
 
     // get number of input and output arrays required
-    numInputArrays = newInputArraySizes.size();
-    numOutputArrays = newOutputArraySizes.size();
+    numInputArrays = kernelInputArraySizes.size();
+    numOutputArrays = kernelOutputArraySizes.size();
 
     // get vector input and output array sizes
-    inputArraySizes = newInputArraySizes;
-    outputArraySizes = newOutputArraySizes;
+    inputArraySizes = kernelInputArraySizes;
+    outputArraySizes = kernelOutputArraySizes;
+
+    // create input buffers
+    inputBuffers = {};
+    for (int i = 0; i < numInputArrays; ++i)
+    {
+        cl::Buffer buffer(*contextPtr, CL_MEM_READ_ONLY, sizeof(float) * inputArraySizes[i]);
+
+        inputBuffers.push_back(buffer);
+    }
+
+    // create output buffers
+    outputBuffers = {};
+    for (int i = 0; i < numOutputArrays; ++i)
+    {
+        cl::Buffer buffer(*contextPtr, CL_MEM_READ_ONLY, sizeof(float) * outputArraySizes[i]);
+
+        outputBuffers.push_back(buffer);
+    }
 }
 
-int OpenCL_KernelInterface::getNumInputArrays()
+// transfer input arrays into input buffers
+void OpenCL_KernelInterface::setInputBuffers(
+    cl::CommandQueue* queuePtr,
+    const std::vector<float*>& inputArrayPtrs
+)
 {
-    return numInputArrays;
+    for (int i = 0; i < numInputArrays; ++i)
+    {
+        (*queuePtr).enqueueWriteBuffer(inputBuffers[i], CL_TRUE, 0, sizeof(float) * inputArraySizes[i], inputArrayPtrs[i]);
+    }
 }
 
-int OpenCL_KernelInterface::getNumOutputArrays()
+// set kernel arguments
+void OpenCL_KernelInterface::setKernelArgs()
 {
-    return numOutputArrays;
+    for (int i = 0; i < numInputArrays; ++i)
+    {
+        kernel.setArg(i, inputBuffers[i]);
+    }
+    for (int i = 0; i < numOutputArrays; ++i)
+    {
+        kernel.setArg(i + numInputArrays, outputBuffers[i]);
+    }
 }
 
-int OpenCL_KernelInterface::getInputArraySize(const int& index)
+// run kernel
+void OpenCL_KernelInterface::runKernel(
+    cl::CommandQueue* queuePtr,
+    const int& numWorkitems,
+    const int& workgroupSize
+)
 {
-    return inputArraySizes[index];
+    (*queuePtr).enqueueNDRangeKernel(kernel, cl::NullRange, cl::NDRange(numWorkitems), cl::NDRange(workgroupSize));
 }
 
-int OpenCL_KernelInterface::getOutputArraySize(const int& index)
+// get output buffers
+void OpenCL_KernelInterface::getOutputBuffers(
+    cl::CommandQueue* queuePtr,
+    const std::vector<float*>& outputArrayPtrs
+)
 {
-    return outputArraySizes[index];
-}
+    for (int i = 0; i < numOutputArrays; ++i)
+    {
+        (*queuePtr).enqueueReadBuffer(outputBuffers[i], CL_TRUE, 0, sizeof(float) * outputArraySizes[i], outputArrayPtrs[i]);
+    }
+} 
 
-cl::Buffer* OpenCL_KernelInterface::getInputBufferPtr(const int& index)
-{
-    return &(inputBuffers[index]);
-}
-
-cl::Buffer* OpenCL_KernelInterface::getOutputBufferPtr(const int& index)
-{
-    return &(outputBuffers[index]);
-}
-
-cl::Kernel* OpenCL_KernelInterface::getKernelPtr()
-{
-    return &kernel;
-}
-
-// ====================================================
-
+// (static function) get kernel
 cl::Kernel OpenCL_KernelInterface::getKernel(
     cl::Device* devicePtr,
     cl::Context* contextPtr,
@@ -88,7 +125,7 @@ cl::Kernel OpenCL_KernelInterface::getKernel(
     return kernel;
 }
 
-// create kernel source given path
+// (static function) create kernel source given path
 std::string OpenCL_KernelInterface::getKernelSource(
     const std::string& kernelPath
 )

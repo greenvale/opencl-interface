@@ -1,3 +1,9 @@
+/* 
+    ==============================================================================================
+     OpenCL_Interface and OpenCL_KernelInterface class header file (William Denny, 12th Aug 2022)
+    ==============================================================================================
+*/
+
 #pragma once
 
 #include <CL/opencl.hpp>
@@ -8,9 +14,12 @@
 #include <string>
 #include <cassert>
 
+// ========================================================
+// OPENCL_KERNELINTERFACE 
+
 class OpenCL_KernelInterface
 {
-public:
+private:
     std::string name;
     int numInputArrays;
     int numOutputArrays;
@@ -27,18 +36,27 @@ public:
         cl::Context* contextPtr,
         const std::string& kernelPath,
         const std::string& kernelName,
-        const std::vector<int>& newInputArraySizes, 
-        const std::vector<int>& newOutputArraySizes
+        const std::vector<int>& kernelInputArraySizes, 
+        const std::vector<int>& kernelOutputArraySizes
     );
 
-    int getNumInputArrays();
-    int getNumOutputArrays();
-    int getInputArraySize(const int& index);
-    int getOutputArraySize(const int& index);
+    void setInputBuffers(
+        cl::CommandQueue* queuePtr,
+        const std::vector<float*>& inputArrayPtrs
+    );
 
-    cl::Buffer* getInputBufferPtr(const int& index);
-    cl::Buffer* getOutputBufferPtr(const int& index);
-    cl::Kernel* getKernelPtr();
+    void setKernelArgs();
+
+    void runKernel(
+        cl::CommandQueue* queuePtr,
+        const int& numWorkitems,
+        const int& workgroupSize
+    );
+
+    void getOutputBuffers(
+        cl::CommandQueue* queuePtr,
+        const std::vector<float*>& outputArrayPtrs
+    );
 
     static cl::Kernel getKernel(
         cl::Device* devicePtr,
@@ -53,14 +71,14 @@ public:
 
 };
 
+// ========================================================
+// OPENCL_INTERFACE 
+
 class OpenCL_Interface
 {
 private:
-    std::vector<cl::Platform> platforms;
-    std::vector<cl::Device> devices;
     cl::Platform platform;
     cl::Device device;
-
     cl::Context context;
     cl::CommandQueue queue;
 
@@ -68,7 +86,6 @@ private:
 
 public:
     OpenCL_Interface();
-
     OpenCL_Interface(
         const int& platformIndex, 
         const int& deviceIndex
@@ -83,10 +100,10 @@ public:
 
     void runKernel(
         const int& index,
-        const int& numElements,
+        const int& numWorkitems,
         const int& workgroupSize,
-        const std::vector<float*>& inputArrays,
-        const std::vector<float*>& outputArrays
+        const std::vector<float*>& inputArrayPtrs,
+        const std::vector<float*>& outputArrayPtrs
     );
 
 };
