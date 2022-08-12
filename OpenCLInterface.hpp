@@ -8,7 +8,7 @@
 #include <string>
 #include <cassert>
 
-struct OpenCLKernel
+struct OpenCL_KernelInterface
 {
     int numInputArrays;
     int numOutputArrays;
@@ -16,9 +16,10 @@ struct OpenCLKernel
     std::vector<int> outputArraySizes;
     std::vector<cl::Buffer> inputBuffers;
     std::vector<cl::Buffer> outputBuffers;
+    cl::Kernel kernel;
 };
 
-class OpenCLInterface
+class OpenCL_Interface
 {
 private:
     std::vector<cl::Platform> platforms;
@@ -29,15 +30,12 @@ private:
     cl::Context context;
     cl::CommandQueue queue;
 
-    cl::Kernel kernel;
-
-    std::vector<cl::Buffer> inputBuffers;
-    std::vector<cl::Buffer> outputBuffers;
+    OpenCL_KernelInterface kernelInterface;
 
 public:
-    OpenCLInterface();
+    OpenCL_Interface();
 
-    OpenCLInterface(
+    OpenCL_Interface(
         const int& targetPlatformIndex, 
         const int& targetDeviceIndex
     );
@@ -52,8 +50,8 @@ public:
     void runKernel(
         const int& numElements,
         const int& workgroupSize,
-        const std::vector<std::tuple<float*, int>>& inputArrays,
-        const std::vector<std::tuple<float*, int>>& outputArrays
+        const std::vector<float*>& inputArrays,
+        const std::vector<float*>& outputArrays
     );
 
     cl::Kernel getKernel(

@@ -22,7 +22,7 @@ int main()
     std::string kernelName = "myKernel";
 
     // Create opencl app object
-    OpenCLInterface myInterface(0, 0);
+    OpenCL_Interface myInterface(0, 0);
 
     myInterface.addKernel(
         kernelPath,
@@ -34,8 +34,8 @@ int main()
     myInterface.runKernel(
         10,
         5,
-        {std::make_tuple(A, 10), std::make_tuple(B, 10)},
-        {std::make_tuple(C, 10)}
+        {A, B},
+        {C}
     );
 
     for (int i = 0; i < 10; ++i)
