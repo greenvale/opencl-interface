@@ -30,7 +30,7 @@ private:
     cl::Context context;
     cl::CommandQueue queue;
 
-    OpenCL_KernelInterface kernelInterface;
+    std::vector<OpenCL_KernelInterface> kernelInterfaces;
 
 public:
     OpenCL_Interface();
@@ -48,6 +48,7 @@ public:
     );
 
     void runKernel(
+        const int& targetKernelIndex,
         const int& numElements,
         const int& workgroupSize,
         const std::vector<float*>& inputArrays,

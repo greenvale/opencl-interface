@@ -32,6 +32,7 @@ int main()
     );
 
     myInterface.runKernel(
+        0,
         10,
         5,
         {A, B},

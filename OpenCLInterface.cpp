@@ -52,23 +52,19 @@ void OpenCL_Interface::addKernel(
     const std::vector<int>& outputArraySizes
 )
 {
-    // -------------------------------------------
-    // KERNEL CREATION
-
-    // get kernel source
-    std::string kernelSource = getKernelSource(kernelPath);
-
-    // get kernel
-    kernelInterface.kernel = getKernel(kernelSource, kernelName);
-
-    // -------------------------------------------
-    // BUFFER CREATION
+    OpenCL_KernelInterface kernelInterface;
 
     kernelInterface.numInputArrays = inputArraySizes.size();
     kernelInterface.numOutputArrays = outputArraySizes.size();
 
     kernelInterface.inputArraySizes = inputArraySizes;
     kernelInterface.outputArraySizes = outputArraySizes;
+
+    // get kernel source
+    std::string kernelSource = getKernelSource(kernelPath);
+
+    // get kernel
+    kernelInterface.kernel = getKernel(kernelSource, kernelName);
 
     // create read buffer vector
     kernelInterface.inputBuffers = {}; // empty vector
@@ -93,11 +89,14 @@ void OpenCL_Interface::addKernel(
 
         kernelInterface.outputBuffers.push_back(buffer);
     }
+
+    kernelInterfaces.push_back(kernelInterface);
 }
 
 // ====================================================
 
 void OpenCL_Interface::runKernel(
+    const int& targetKernelIndex,
     const int& numElements,
     const int& workgroupSize,
     const std::vector<float*>& inputArrays, 
@@ -105,35 +104,35 @@ void OpenCL_Interface::runKernel(
 )
 {
     // add input to input buffer
-    for (int i = 0; i < kernelInterface.numInputArrays; ++i)
+    for (int i = 0; i < kernelInterfaces[targetKernelIndex].numInputArrays; ++i)
     {
         float* array = inputArrays[i];
 
-        queue.enqueueWriteBuffer(kernelInterface.inputBuffers[i], CL_TRUE, 0, sizeof(float) * kernelInterface.inputArraySizes[i], array);
+        queue.enqueueWriteBuffer(kernelInterfaces[targetKernelIndex].inputBuffers[i], CL_TRUE, 0, sizeof(float) * kernelInterfaces[targetKernelIndex].inputArraySizes[i], array);
     }
 
     // set kernel arguments
-    for (int i = 0; i < kernelInterface.numInputArrays; ++i)
+    for (int i = 0; i < kernelInterfaces[targetKernelIndex].numInputArrays; ++i)
     {
-        kernelInterface.kernel.setArg(i, kernelInterface.inputBuffers[i]);
+        kernelInterfaces[targetKernelIndex].kernel.setArg(i, kernelInterfaces[targetKernelIndex].inputBuffers[i]);
     }
-    for (int i = 0; i < kernelInterface.numOutputArrays; ++i)
+    for (int i = 0; i < kernelInterfaces[targetKernelIndex].numOutputArrays; ++i)
     {
-        kernelInterface.kernel.setArg(i + kernelInterface.numInputArrays, kernelInterface.outputBuffers[i]);
+        kernelInterfaces[targetKernelIndex].kernel.setArg(i + kernelInterfaces[targetKernelIndex].numInputArrays, kernelInterfaces[targetKernelIndex].outputBuffers[i]);
     }
 
     // run kernel
-    queue.enqueueNDRangeKernel(kernelInterface.kernel, cl::NullRange, cl::NDRange(numElements), cl::NDRange(workgroupSize));
+    queue.enqueueNDRangeKernel(kernelInterfaces[targetKernelIndex].kernel, cl::NullRange, cl::NDRange(numElements), cl::NDRange(workgroupSize));
 
     // wait for kernel to finish
     queue.finish();
 
     // transfer output buffer to output
-    for (int i = 0; i < kernelInterface.numOutputArrays; ++i)
+    for (int i = 0; i < kernelInterfaces[targetKernelIndex].numOutputArrays; ++i)
     {
         float* array = outputArrays[i];
 
-        queue.enqueueReadBuffer(kernelInterface.outputBuffers[i], CL_TRUE, 0, sizeof(float) * kernelInterface.outputArraySizes[i], array);
+        queue.enqueueReadBuffer(kernelInterfaces[targetKernelIndex].outputBuffers[i], CL_TRUE, 0, sizeof(float) * kernelInterfaces[targetKernelIndex].outputArraySizes[i], array);
     }
 }
 
