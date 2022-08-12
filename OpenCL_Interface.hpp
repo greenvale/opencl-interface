@@ -94,8 +94,8 @@ public:
     void addKernel(
         const std::string& kernelPath, 
         const std::string& kernelName,
-        const std::vector<int>& inputArraySizes,
-        const std::vector<int>& outputArraySizes
+        const std::vector<int>& kernelInputArraySizes,
+        const std::vector<int>& kernelOutputArraySizes
     );
 
     void runKernel(

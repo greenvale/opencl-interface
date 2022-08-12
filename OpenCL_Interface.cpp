@@ -54,8 +54,8 @@ OpenCL_Interface::OpenCL_Interface(
 void OpenCL_Interface::addKernel(
     const std::string& kernelPath, 
     const std::string& kernelName,
-    const std::vector<int>& inputArraySizes,
-    const std::vector<int>& outputArraySizes
+    const std::vector<int>& kernelInputArraySizes,
+    const std::vector<int>& kernelOutputArraySizes
 )
 {
     // create kernel interface object
@@ -64,7 +64,7 @@ void OpenCL_Interface::addKernel(
         - kernel path and name
         - intput and output array sizes
     */
-    OpenCL_KernelInterface kernelInterface = OpenCL_KernelInterface(&device, &context, kernelPath, kernelName, inputArraySizes, outputArraySizes);
+    OpenCL_KernelInterface kernelInterface = OpenCL_KernelInterface(&device, &context, kernelPath, kernelName, kernelInputArraySizes, kernelOutputArraySizes);
 
     // add kernel interface to vector
     kernelInterfaces.push_back(kernelInterface);
