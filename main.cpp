@@ -12,7 +12,7 @@ int main()
     for (int i = 0; i < 10; ++i)
     {
         A[i] = i * 1.0;
-        B[i] = i * 2.0;
+        B[i] = i * 5.0;
     }
 
     // kernel path and name

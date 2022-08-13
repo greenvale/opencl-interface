@@ -1,0 +1,3 @@
+# OpenCL Interface
+
+The OpenCL Interface is a class that removes the need to implement OpenCL C++ bindings. Kernel functions can be automatically configured with buffer objects and run. Data can easily be transferred to and from device buffers. The kernel functionality is contained within the OpenCL Kernel Interface class; the OpenCL Interface class is a wrapper that links this to the external program.
