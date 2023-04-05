@@ -4,7 +4,7 @@
 
 int main() 
 {
-    std::cout << "Added to test Git pushing from Visual Studio" << std::endl;
+    std::cout << "Added to test Git pushing from Visual Studio 2" << std::endl;
 
     // initialise values
     float* A = new float[10];
