@@ -4,6 +4,8 @@
 
 int main() 
 {
+    std::cout << "Added to test Git pushing from Visual Studio" << std::endl;
+
     // initialise values
     float* A = new float[10];
     float* B = new float[10];
